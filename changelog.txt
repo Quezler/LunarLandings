@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.12
+Date: ????
+  Bugfixes:
+    - Several rockets auto-launching to the same landing pad will no longer cause spills
+---------------------------------------------------------------------------------------------------
 Version: 1.0.11
 Date: 28 May 2024
   Bugfixes:

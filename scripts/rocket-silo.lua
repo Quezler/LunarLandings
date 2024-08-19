@@ -234,9 +234,31 @@ local function get_destination_landing_pad(landing_pad_name, landing_pad_surface
   if not (landing_pad and landing_pad.entity.valid) then
     return
   end
-  return landing_pad.entity
+  return landing_pad
 end
 
+local function inventory_count_non_empty_stacks(inventory)
+  return #inventory - inventory.count_empty_stacks(true, true)
+end
+
+local function available_slots_in_destination(landing_pad)
+  local landing_pad_inventory = landing_pad.entity.get_inventory(defines.inventory.chest)
+  local available_slots = landing_pad_inventory.count_empty_stacks(false, false)
+
+  log(table_size(landing_pad.inbound_rockets))
+  for rocket_unit_number, rocket_entity in pairs(landing_pad.inbound_rockets) do
+    if rocket_entity.valid then
+      local rocket_inventory = rocket_entity.get_inventory(defines.inventory.rocket)
+      available_slots = available_slots - inventory_count_non_empty_stacks(rocket_inventory)
+    else
+      landing_pad.inbound_rockets[rocket_unit_number] = nil
+    end
+  end
+
+  return available_slots
+end
+
+local destination_for_the_most_recently_launched_rocket = nil
 local function launch_if_destination_has_space(silo_data, ready_stacks)
   local silo = silo_data.entity
   local destination_name = silo_data.destination
@@ -251,9 +273,12 @@ local function launch_if_destination_has_space(silo_data, ready_stacks)
       -- Rockets from Luna deposit rocket parts too
       ready_stacks = ready_stacks + LUNA_ROCKET_SILO_PARTS_REQUIRED
     end
-    local inventory = destination.get_inventory(defines.inventory.chest)
-    if inventory.count_empty_stacks(false, false) >= ready_stacks then
-      silo.launch_rocket()
+    if available_slots_in_destination(destination) >= ready_stacks then
+      destination_for_the_most_recently_launched_rocket = destination
+      log('foobar 1')
+      silo.launch_rocket() -- this event is instant, so the temporary destination does not need to exist in global
+      log('foobar 3')
+      destination_for_the_most_recently_launched_rocket = nil
     end
   end
 end
@@ -268,7 +293,7 @@ local function on_tick(event)
         if silo_data.auto_launch == "any" then
           local inventory = silo.get_inventory(defines.inventory.rocket_silo_rocket)
           if not inventory.is_empty() then
-            launch_if_destination_has_space(silo_data, #inventory - inventory.count_empty_stacks(true, true))
+            launch_if_destination_has_space(silo_data, inventory_count_non_empty_stacks(inventory))
           end
         elseif silo_data.auto_launch == "full" then
           local inventory = silo.get_inventory(defines.inventory.rocket_silo_rocket)
@@ -282,7 +307,9 @@ local function on_tick(event)
 end
 
 local function on_rocket_launch_ordered(event)
+  log('foobar 2')
   local silo = event.rocket_silo
+  local rocket = event.rocket
 
   -- Remove interstellar satellite from rocket if it isn't an interstellar rocket
   if silo.name == "ll-rocket-silo-interstellar" then return end
@@ -297,6 +324,10 @@ local function on_rocket_launch_ordered(event)
     if gui_elements then
       gui_elements["ll-destination-dropdown"].enabled = false
     end
+  end
+
+  if destination_for_the_most_recently_launched_rocket then
+    destination_for_the_most_recently_launched_rocket.inbound_rockets[rocket.unit_number] = rocket
   end
 end
 
@@ -340,20 +371,21 @@ local function land_rocket(surface, inventory, landing_pad_name, rocket_parts)
     spill_rocket(surface, inventory, rocket_parts)
     return
   end
-  local pad_inventory = landing_pad.get_inventory(defines.inventory.chest)
+  local landing_pad_entity = landing_pad.entity
+  local pad_inventory = landing_pad_entity.get_inventory(defines.inventory.chest)
   for i = 1, #inventory do
     local stack = inventory[i]
     if stack and stack.valid_for_read then
       local inserted = pad_inventory.insert(stack)
       if inserted < stack.count then
-        surface.spill_item_stack(landing_pad.position, {name = stack.name, count = stack.count - inserted}, false, nil, false)
+        surface.spill_item_stack(landing_pad_entity.position, {name = stack.name, count = stack.count - inserted}, false, nil, false)
       end
     end
   end
-  if rocket_parts and rocket_parts > 0 and landing_pad.force.technologies["ll-used-rocket-part-recycling"].researched then
+  if rocket_parts and rocket_parts > 0 and landing_pad_entity.force.technologies["ll-used-rocket-part-recycling"].researched then
     local inserted = pad_inventory.insert{name = "ll-used-rocket-part", count = rocket_parts}
     if inserted < rocket_parts then
-      surface.spill_item_stack(landing_pad.position, {name = "ll-used-rocket-part", count = rocket_parts - inserted}, false, nil, false)
+      surface.spill_item_stack(landing_pad_entity.position, {name = "ll-used-rocket-part", count = rocket_parts - inserted}, false, nil, false)
     end
   end
 end

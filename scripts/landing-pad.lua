@@ -125,7 +125,8 @@ local function on_built_entity(event)
   global.landing_pads[entity.unit_number] = {
     entity = entity,
     name = "Default",
-    surface_name = entity.surface.name
+    surface_name = entity.surface.name,
+    inbound_rockets = {},
   }
   LandingPad.name_added("Default", entity.unit_number, entity.surface.name)
   script.register_on_entity_destroyed(entity)
@@ -159,6 +160,10 @@ LandingPad.on_configuration_changed = function(changed_data)
   global.landing_pads = global.landing_pads or {}
   global.landing_pad_names = global.landing_pad_names or {nauvis = {}, luna = {}}
   global.landing_pad_guis = global.landing_pad_guis or {}
+
+  for _, landing_pad in pairs(global.landing_pads) do
+    landing_pad.inbound_rockets = landing_pad.inbound_rockets or {}
+  end
 end
 
 return LandingPad
