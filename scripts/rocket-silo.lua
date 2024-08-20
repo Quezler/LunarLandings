@@ -430,8 +430,6 @@ local function on_rocket_launched(event)
     local rocket_in_transit = global.rockets_in_transit[ll_util.get_rocket_unit_number(event.rocket)]
     assert(rocket_in_transit)
 
-    game.print(game.tick - rocket_in_transit.rocket_launched_at) -- 1162
-
     local destination_name = rocket_in_transit.destination_name
 
     if destination_name == "Space" then

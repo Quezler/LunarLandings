@@ -31,7 +31,21 @@ end
 
 local function on_tick(event)
   for unit_number, rocket_in_transit in pairs(global.rockets_in_transit) do
-    -- game.print(event.tick - rocket_in_transit.rocket_launched_at)
+    local ticks_since_launch = event.tick - rocket_in_transit.rocket_launched_at
+
+    -- copied from here, manually watched start to finish to ensure no 1 tick diff in either direction:
+    -- https://github.com/Quezler/glutenfree/blob/main/mods/glutenfree-rocket-silo-events/control.lua
+    -- log(ticks_since_launch .. ' ' .. rocket_in_transit.silo.rocket_silo_status)
+
+    -- [1]    = 14, -- defines.rocket_silo_status.launch_started
+    -- [121]  =  9, -- defines.rocket_silo_status.engine_starting
+    -- [451]  = 10, -- defines.rocket_silo_status.arms_retract
+    -- [555]  = 11, -- defines.rocket_silo_status.rocket_flying
+    -- [1095] = 12, -- defines.rocket_silo_status.lights_blinking_close
+    -- [1162] = event, on_rocket_launched
+    -- [1276] = 13, -- defines.rocket_silo_status.doors_closing
+    -- [1532] =  0, -- defines.rocket_silo_status.building_rocket
+
   end
 end
 
