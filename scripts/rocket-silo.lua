@@ -267,8 +267,7 @@ local function launch_rocket(silo, destination_name, destination)
   local launched = silo.launch_rocket()
   if launched == false then error("'defines.rocket_silo_status.rocket_ready' wasn't checked.") end -- sanity check
 
-  global.rocket_silo_destinations[silo.unit_number] = {
-    tick = game.tick, -- entries older than 0-1 ticks are considered stale
+  global.rocket_silo_destinations_this_tick[silo.unit_number] = {
     silo = silo,
     destination = destination,
     destination_name = destination_name,
@@ -296,8 +295,8 @@ local function launch_if_destination_has_space(silo_data, ready_stacks)
 end
 
 local function on_tick(event)
-  -- on_rocket_launch_ordered seems to fire at the end of a tick, not instantly, at the start of the next tick they are stale
-  global.rocket_silo_destinations = {}
+  -- on_rocket_launch_ordered is not instant as the docs claim, they (appear to) fire before this handler gets triggered again
+  global.rocket_silo_destinations_this_tick = {}
 
   for unit_number, silo_data in pairs(Buckets.get_bucket(global.rocket_silos, event.tick)) do
     local silo = silo_data.entity
@@ -342,9 +341,9 @@ local function on_rocket_launch_ordered(event)
   end
 
   if rocket_silos[silo.name] then
-    local rocket_silo_destination = global.rocket_silo_destinations[silo.unit_number]
+    local rocket_silo_destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
     assert(rocket_silo_destination)
-    game.print('i exist!')
+    game.print('rocket silo destination found :)')
   end
 end
 
@@ -543,7 +542,7 @@ RocketSilo.on_init = function ()
   global.rocket_silo_guis = {}
   global.satellites_launched = {}
   global.satellite_cursors = {}
-  global.rocket_silo_destinations = {}
+  global.rocket_silo_destinations_this_tick = {}
   disable_rocket_victory()
   disable_luna_exploration_tech()
 
@@ -560,7 +559,7 @@ RocketSilo.on_configuration_changed = function(changed_data)
   global.rocket_silo_guis = global.rocket_silo_guis or {}
   global.satellites_launched = global.satellites_launched or {}
   global.satellite_cursors = global.satellite_cursors or {}
-  global.rocket_silo_destinations = global.rocket_silo_destinations or {}
+  global.rocket_silo_destinations_this_tick = global.rocket_silo_destinations_this_tick or {}
   disable_rocket_victory()
 end
 
