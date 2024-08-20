@@ -335,7 +335,7 @@ local function on_rocket_launch_ordered(event)
     local silo_data = Buckets.get(global.rocket_silos, silo.unit_number)
     assert(silo_data)
 
-    -- nil when launched by a player, allowed to be nil
+    -- nil when launched by a player, if nil re-determine destination upon landing.
     local destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
     local destination_name = silo_data.destination
 
