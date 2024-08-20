@@ -1,3 +1,5 @@
+local ll_util = require "scripts.ll-util"
+
 local Buckets = require "scripts.buckets"
 local RocketTransit = require "scripts.rocket-transit"
 
@@ -8,13 +10,6 @@ local rocket_silos = {
   ["rocket-silo"] = true,
   ["ll-rocket-silo-down"] = true,
 }
-
-NAUVIS_ROCKET_SILO_PARTS_REQUIRED = 20
-LUNA_ROCKET_SILO_PARTS_REQUIRED = 5
-
-local function get_other_surface_name(surface_name)
-  return surface_name == "nauvis" and "luna" or "nauvis"
-end
 
 local function is_rocket_launching(entity)
   local status = entity.rocket_silo_status
@@ -50,7 +45,7 @@ local function build_gui(player, silo)
   if destination_name == "Luna Surface" or destination_name == "Nauvis Surface" then
     dropdown_index = 2
   end
-  for name, _ in pairs(global.landing_pad_names[get_other_surface_name(silo.surface.name)]) do
+  for name, _ in pairs(global.landing_pad_names[ll_util.get_other_surface_name(silo.surface.name)]) do
     table.insert(landing_pad_names, name)
     if name == destination_name then
       dropdown_index = i + (surfaces_unlocked and 2 or 1)
@@ -239,10 +234,6 @@ local function get_destination_landing_pad(landing_pad_name, landing_pad_surface
   return landing_pad
 end
 
-local function inventory_count_non_empty_stacks(inventory)
-  return #inventory - inventory.count_empty_stacks(true, true)
-end
-
 local function available_slots_in_destination(landing_pad)
   local landing_pad_inventory = landing_pad.entity.get_inventory(defines.inventory.chest)
   local available_slots = landing_pad_inventory.count_empty_stacks(false, false)
@@ -251,7 +242,7 @@ local function available_slots_in_destination(landing_pad)
   for rocket_unit_number, rocket_entity in pairs(landing_pad.inbound_rockets) do
     if rocket_entity.valid then
       local rocket_inventory = rocket_entity.get_inventory(defines.inventory.rocket)
-      available_slots = available_slots - inventory_count_non_empty_stacks(rocket_inventory)
+      available_slots = available_slots - ll_util.inventory_count_non_empty_stacks(rocket_inventory)
     else
       landing_pad.inbound_rockets[rocket_unit_number] = nil
     end
@@ -280,13 +271,13 @@ local function launch_if_destination_has_space(silo_data, empty_slots_required)
   if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
     launch_rocket(silo, destination_name)
   else
-    local destination = get_destination_landing_pad(destination_name, get_other_surface_name(silo.surface.name))
+    local destination = get_destination_landing_pad(destination_name, ll_util.get_other_surface_name(silo.surface.name))
     if not destination then
       return  -- Destination landing pad doesn't exist, so don't autolaunch
     end
     if silo.surface.name == "luna" then
       -- Rockets from Luna deposit rocket parts too
-      empty_slots_required = empty_slots_required + LUNA_ROCKET_SILO_PARTS_REQUIRED
+      empty_slots_required = empty_slots_required + ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED
     end
     if available_slots_in_destination(destination) >= empty_slots_required then
       launch_rocket(silo, destination_name, destination)
@@ -307,7 +298,7 @@ local function on_tick(event)
         if silo_data.auto_launch == "any" then
           local inventory = silo.get_inventory(defines.inventory.rocket_silo_rocket)
           if not inventory.is_empty() then
-            launch_if_destination_has_space(silo_data, inventory_count_non_empty_stacks(inventory))
+            launch_if_destination_has_space(silo_data, ll_util.inventory_count_non_empty_stacks(inventory))
           end
         elseif silo_data.auto_launch == "full" then
           local inventory = silo.get_inventory(defines.inventory.rocket_silo_rocket)
@@ -333,9 +324,14 @@ local function on_rocket_launch_ordered(event)
   end
 
   if rocket_silos[silo.name] then
-    local rocket_silo_destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
-    assert(rocket_silo_destination)
-    game.print('rocket silo destination found :)')
+    local silo_data = Buckets.get(global.rocket_silos, silo.unit_number)
+    assert(silo_data)
+
+    -- nil when launched by a player, allowed to be nil
+    local destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
+    local destination_name = silo_data.destination
+
+    RocketTransit.register(silo, rocket, destination_name, destination)
   end
 end
 
@@ -402,7 +398,7 @@ local function on_rocket_launched(event)
   local silo = event.rocket_silo
   if silo.name == "rocket-silo" and silo.force.technologies["ll-used-rocket-part-recycling"].researched then
     local result_inventory = silo.get_inventory(defines.inventory.rocket_silo_result)
-    result_inventory.insert{name = "ll-used-rocket-part", count = NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
+    result_inventory.insert{name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
   elseif silo.name == "ll-rocket-silo-interstellar" then
     local rocket = event.rocket
     if not (rocket and rocket.valid) then return end
@@ -466,12 +462,12 @@ local function on_rocket_launched(event)
     end
   elseif destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
     local rocket_surface = silo.surface.name
-    local surface = game.get_surface(get_other_surface_name(rocket_surface))
-    spill_rocket(surface, inventory, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
+    local surface = game.get_surface(ll_util.get_other_surface_name(rocket_surface))
+    spill_rocket(surface, inventory, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   else
     local rocket_surface = silo.surface.name
-    local surface = game.get_surface(get_other_surface_name(rocket_surface))
-    land_rocket(surface, inventory, destination_name, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
+    local surface = game.get_surface(ll_util.get_other_surface_name(rocket_surface))
+    land_rocket(surface, inventory, destination_name, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   end
 end
 
