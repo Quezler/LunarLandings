@@ -29,15 +29,17 @@ function RocketTransit.register_rocket(silo, rocket, destination_name, destinati
   global.rockets_in_transit[ll_util.get_rocket_unit_number(rocket)] = rocket_in_transit
 
   local position = silo.position
-  position.y = position.y + 2.5
+  position.x = position.x - 0.03
+  position.y = position.y + 2.435
 
   local id = rendering.draw_sprite{
-    sprite = 'll-rocket-bottom',
+    sprite = 'll-rocket-silo-front',
     surface = silo.surface,
     target = position,
     x_scale = 0.5,
     y_scale = 0.5,
-    render_layer = "object",
+    render_layer = 130,
+    only_in_alt_mode = true,
   }
 
   game.print(position)

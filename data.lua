@@ -55,6 +55,15 @@ data:extend{{
   name = 'll-rocket-bottom',
 
   filename = '__LunarLandings__/graphics/entities/rocket/rocket-bottom.png',
-  height = 313,
   width = 310,
+  height = 313,
+}}
+
+data:extend{{
+  type = 'sprite',
+  name = 'll-rocket-silo-front',
+
+  filename = '__LunarLandings__/graphics/entities/rocket/hr-14-rocket-silo-front.png',
+  width = 580,
+  height = 262,
 }}
