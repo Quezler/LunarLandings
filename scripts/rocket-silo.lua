@@ -260,11 +260,26 @@ local function available_slots_in_destination(landing_pad)
   return available_slots
 end
 
+-- destination is the preferred/preselected destination, will fallback to destination_name if inelligable
+local function launch_rocket(silo, destination_name, destination)
+  if destination then assert(destination.entity) end -- entry of global.landing_pads
+
+  local launched = silo.launch_rocket()
+  if launched == false then error("'defines.rocket_silo_status.rocket_ready' wasn't checked.") end -- sanity check
+
+  global.rocket_silo_destinations[silo.unit_number] = {
+    tick = game.tick, -- entries older than 0-1 ticks are considered stale
+    silo = silo,
+    destination = destination,
+    destination_name = destination_name,
+  }
+end
+
 local function launch_if_destination_has_space(silo_data, ready_stacks)
   local silo = silo_data.entity
   local destination_name = silo_data.destination
   if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
-    RocketTransit.launch_rocket(silo, destination_name)
+    launch_rocket(silo, destination_name)
   else
     local destination = get_destination_landing_pad(destination_name, get_other_surface_name(silo.surface.name))
     if not destination then
@@ -275,12 +290,15 @@ local function launch_if_destination_has_space(silo_data, ready_stacks)
       ready_stacks = ready_stacks + LUNA_ROCKET_SILO_PARTS_REQUIRED
     end
     if available_slots_in_destination(destination) >= ready_stacks then
-      RocketTransit.launch_rocket(silo, destination_name, destination)
+      launch_rocket(silo, destination_name, destination)
     end
   end
 end
 
 local function on_tick(event)
+  -- on_rocket_launch_ordered seems to fire at the end of a tick, not instantly, at the start of the next tick they are stale
+  global.rocket_silo_destinations = {}
+
   for unit_number, silo_data in pairs(Buckets.get_bucket(global.rocket_silos, event.tick)) do
     local silo = silo_data.entity
     if not silo.valid then
@@ -324,7 +342,9 @@ local function on_rocket_launch_ordered(event)
   end
 
   if rocket_silos[silo.name] then
-    local rocket_silo_destination = RocketTransit.get_rocket_silo_destination(silo)
+    local rocket_silo_destination = global.rocket_silo_destinations[silo.unit_number]
+    assert(rocket_silo_destination)
+    game.print('i exist!')
   end
 end
 
@@ -523,6 +543,7 @@ RocketSilo.on_init = function ()
   global.rocket_silo_guis = {}
   global.satellites_launched = {}
   global.satellite_cursors = {}
+  global.rocket_silo_destinations = {}
   disable_rocket_victory()
   disable_luna_exploration_tech()
 
@@ -539,6 +560,7 @@ RocketSilo.on_configuration_changed = function(changed_data)
   global.rocket_silo_guis = global.rocket_silo_guis or {}
   global.satellites_launched = global.satellites_launched or {}
   global.satellite_cursors = global.satellite_cursors or {}
+  global.rocket_silo_destinations = global.rocket_silo_destinations or {}
   disable_rocket_victory()
 end
 
