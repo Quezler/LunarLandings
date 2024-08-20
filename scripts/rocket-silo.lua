@@ -418,56 +418,58 @@ local function on_rocket_launched(event)
     end
   end
 
-  local inventory = event.rocket.get_inventory(defines.inventory.rocket)
+  if rocket_silos[silo.name] then
+    local rocket_in_transit = global.rockets_in_transit[event.rocket]
+    assert(rocket_in_transit)
 
-  local silo_data = Buckets.get(global.rocket_silos, silo.unit_number)
-  local destination_name = silo_data.destination
-  if destination_name == "Space" then
-    if inventory.get_item_count("satellite") >= 1 then
-      if silo.name == "rocket-silo" then
-        local force_name = silo.force.name
-        local satellites_launched = global.satellites_launched[force_name] or 0
-        if satellites_launched == 0 then
-          if game.is_multiplayer() then
-            game.print({"ll-console-info.first-satellite-launched"})
-          else
-            game.show_message_dialog{text = {"ll-console-info.first-satellite-launched"}}
-          end
-          game.print({"ll-console-info.first-satellite-launched-urq-hint"})
-          game.print({"ll-console-info.new-destination-unlocked"})
-          silo.force.technologies["ll-luna-exploration"].enabled = true
-        end
-        global.satellites_launched[silo.force.name] = satellites_launched + 1
-        if satellites_launched > 0 then
-          local position = global.satellite_cursors[silo.force.name] or {x = 0, y = 0}
-          for i = 1, 300 do
-            while silo.force.is_chunk_charted("luna", position) do
-              position = spiral_next(position)
+    local destination_name = rocket_in_transit.destination_name
+
+    if destination_name == "Space" then
+      if rocket_in_transit.inventory.get_item_count("satellite") >= 1 then
+        if rocket_in_transit.silo_name == "rocket-silo" then
+          local force = rocket_in_transit.force
+          local force_name = rocket_in_transit.force.name
+          local satellites_launched = global.satellites_launched[force_name] or 0
+          if satellites_launched == 0 then
+            if game.is_multiplayer() then
+              game.print({"ll-console-info.first-satellite-launched"})
+            else
+              game.show_message_dialog{text = {"ll-console-info.first-satellite-launched"}}
             end
-            silo.force.chart("luna", {
-              {
-                x = position.x * 32,
-                y = position.y * 32
-              },
-              {
-                x = (position.x + 0.5) * 32,
-                y = (position.y + 0.5) * 32,
-              }
-            })
-            position = spiral_next(position)
-            global.satellite_cursors[silo.force.name] = position
+            game.print({"ll-console-info.first-satellite-launched-urq-hint"})
+            game.print({"ll-console-info.new-destination-unlocked"})
+            force.technologies["ll-luna-exploration"].enabled = true
+          end
+          global.satellites_launched[force_name] = satellites_launched + 1
+          if satellites_launched > 0 then
+            local position = global.satellite_cursors[force_name] or {x = 0, y = 0}
+            for i = 1, 300 do
+              while force.is_chunk_charted("luna", position) do
+                position = spiral_next(position)
+              end
+              force.chart("luna", {
+                {
+                  x = position.x * 32,
+              y = position.y * 32
+                },
+                {
+                  x (position.x + 0.5) * 32,
+                  y = (position.y + 0.5) * 32,
+                }
+              })
+              position = spiral_next(position)
+              global.satellite_cursors[force_name] = position
+            end
           end
         end
       end
+    elseif destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
+      local surface = game.get_surface(rocket_in_transit.destination_surface_name)
+      spill_rocket(surface, rocket_in_transit.inventory, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
+    else
+      local surface = game.get_surface(rocket_in_transit.destination_surface_name)
+      land_rocket(surface, rocket_in_transit.inventory, destination_name, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
     end
-  elseif destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
-    local rocket_surface = silo.surface.name
-    local surface = game.get_surface(ll_util.get_other_surface_name(rocket_surface))
-    spill_rocket(surface, inventory, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
-  else
-    local rocket_surface = silo.surface.name
-    local surface = game.get_surface(ll_util.get_other_surface_name(rocket_surface))
-    land_rocket(surface, inventory, destination_name, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   end
 end
 
