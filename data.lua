@@ -49,3 +49,12 @@ require "__LunarLandings__.prototypes.recipe-changes"
 require "__LunarLandings__.prototypes.tips-and-tricks"
 require "__LunarLandings__.prototypes.sounds"
 --require "__LunarLandings__.prototypes.construction-bots"
+
+data:extend{{
+  type = 'sprite',
+  name = 'll-rocket-bottom',
+
+  filename = '__LunarLandings__/graphics/entities/rocket/rocket-bottom.png',
+  height = 313,
+  width = 310,
+}}
