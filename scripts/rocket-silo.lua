@@ -1,4 +1,5 @@
 local Buckets = require "scripts.buckets"
+local RocketTransit = require "scripts.rocket-transit"
 
 ---@type ScriptLib
 local RocketSilo = {}
@@ -259,12 +260,11 @@ local function available_slots_in_destination(landing_pad)
   return available_slots
 end
 
-local destination_for_the_most_recently_launched_rocket = nil
 local function launch_if_destination_has_space(silo_data, ready_stacks)
   local silo = silo_data.entity
   local destination_name = silo_data.destination
   if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
-    silo.launch_rocket()
+    RocketTransit.launch_rocket(silo, destination_name)
   else
     local destination = get_destination_landing_pad(destination_name, get_other_surface_name(silo.surface.name))
     if not destination then
@@ -275,11 +275,7 @@ local function launch_if_destination_has_space(silo_data, ready_stacks)
       ready_stacks = ready_stacks + LUNA_ROCKET_SILO_PARTS_REQUIRED
     end
     if available_slots_in_destination(destination) >= ready_stacks then
-      destination_for_the_most_recently_launched_rocket = destination
-      log('foobar 1')
-      silo.launch_rocket() -- this event is instant, so the temporary destination does not need to exist in global
-      log('foobar 3')
-      destination_for_the_most_recently_launched_rocket = nil
+      RocketTransit.launch_rocket(silo, destination_name, destination)
     end
   end
 end
@@ -327,8 +323,8 @@ local function on_rocket_launch_ordered(event)
     end
   end
 
-  if destination_for_the_most_recently_launched_rocket then
-    destination_for_the_most_recently_launched_rocket.inbound_rockets[rocket.unit_number] = rocket
+  if rocket_silos[silo.name] then
+    local rocket_silo_destination = RocketTransit.get_rocket_silo_destination(silo)
   end
 end
 
