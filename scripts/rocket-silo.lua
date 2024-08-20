@@ -458,10 +458,10 @@ local function on_rocket_launched(event)
               force.chart("luna", {
                 {
                   x = position.x * 32,
-              y = position.y * 32
+                  y = position.y * 32
                 },
                 {
-                  x (position.x + 0.5) * 32,
+                  x = (position.x + 0.5) * 32,
                   y = (position.y + 0.5) * 32,
                 }
               })
