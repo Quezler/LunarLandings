@@ -419,7 +419,7 @@ local function on_rocket_launched(event)
   end
 
   if rocket_silos[silo.name] then
-    local rocket_in_transit = global.rockets_in_transit[event.rocket]
+    local rocket_in_transit = global.rockets_in_transit[ll_util.get_rocket_unit_number(event.rocket)]
     assert(rocket_in_transit)
 
     local destination_name = rocket_in_transit.destination_name

@@ -26,7 +26,7 @@ function RocketTransit.register_rocket(silo, rocket, destination_name, destinati
     rocket_in_transit.inventory[i].transfer_stack(rocket_inventory[i])
   end
 
-  global.rockets_in_transit[rocket.unit_number] = rocket_in_transit
+  global.rockets_in_transit[ll_util.get_rocket_unit_number(rocket)] = rocket_in_transit
 end
 
 function RocketTransit.on_init()

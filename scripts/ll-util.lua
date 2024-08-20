@@ -11,4 +11,8 @@ function ll_util.inventory_count_non_empty_stacks(inventory)
   return #inventory - inventory.count_empty_stacks(true, true)
 end
 
+function ll_util.get_rocket_unit_number(rocket)
+  return script.register_on_entity_destroyed(rocket)
+end
+
 return ll_util
