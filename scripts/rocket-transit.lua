@@ -29,6 +29,40 @@ function RocketTransit.register_rocket(silo, rocket, destination_name, destinati
   global.rockets_in_transit[ll_util.get_rocket_unit_number(rocket)] = rocket_in_transit
 end
 
+local function on_rocket_launched_to_space()
+end
+
+local function on_rocket_launched_to_surface()
+end
+
+local function on_rocket_launched_to_landing_pad()
+end
+
+local function on_rocket_launched(rocket_in_transit)
+  local silo_name = rocket_in_transit.silo_name
+  local force = rocket_in_transit.force
+
+  if silo_name == "rocket-silo" and force.technologies["ll-used-rocket-part-recycling"].researched then
+    -- TODO: if solo still valid, put the used parts in there, else drop on ground
+    -- local result_inventory = silo.get_inventory(defines.inventory.rocket_silo_result)
+    -- result_inventory.insert{name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
+  elseif silo_name == "ll-rocket-silo-interstellar" then
+    -- Win the game
+    if game.finished or game.finished_but_continuing or global.finished then return end
+    global.finished = true
+    if remote.interfaces["better-victory-screen"] and remote.interfaces["better-victory-screen"]["trigger_victory"] then
+      remote.call("better-victory-screen", "trigger_victory", force)
+    else
+      game.set_game_state{
+        game_finished = true,
+        player_won = true,
+        can_continue = true,
+        victorious_force = force
+      }
+    end
+  end
+end
+
 local function on_tick(event)
   for unit_number, rocket_in_transit in pairs(global.rockets_in_transit) do
     local ticks_since_launch = event.tick - rocket_in_transit.rocket_launched_at
@@ -45,6 +79,10 @@ local function on_tick(event)
     -- [1162] = event, on_rocket_launched
     -- [1276] = 13, -- defines.rocket_silo_status.doors_closing
     -- [1532] =  0, -- defines.rocket_silo_status.building_rocket
+
+    if ticks_since_launch == 1162 then
+      on_rocket_launched(rocket_in_transit)
+    end
 
   end
 end
