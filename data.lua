@@ -49,21 +49,3 @@ require "__LunarLandings__.prototypes.recipe-changes"
 require "__LunarLandings__.prototypes.tips-and-tricks"
 require "__LunarLandings__.prototypes.sounds"
 --require "__LunarLandings__.prototypes.construction-bots"
-
-data:extend{{
-  type = 'sprite',
-  name = 'll-rocket-bottom',
-
-  filename = '__LunarLandings__/graphics/entities/rocket/rocket-bottom.png',
-  width = 310,
-  height = 313,
-}}
-
-data:extend{{
-  type = 'sprite',
-  name = 'll-rocket-silo-front',
-
-  filename = '__LunarLandings__/graphics/entities/rocket/hr-14-rocket-silo-front.png',
-  width = 580,
-  height = 262,
-}}
