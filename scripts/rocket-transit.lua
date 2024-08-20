@@ -9,7 +9,7 @@ function RocketTransit.register_rocket(silo, rocket, destination_name, destinati
   local rocket_in_transit = {
     silo = silo,
     silo_name = silo.name,
-    silo_position = silo.silo_position,
+    silo_position = silo.position,
 
     force = silo.force,
 

@@ -331,7 +331,7 @@ local function on_rocket_launch_ordered(event)
     local destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
     local destination_name = silo_data.destination
 
-    RocketTransit.register(silo, rocket, destination_name, destination)
+    RocketTransit.register_rocket(silo, rocket, destination_name, destination)
   end
 end
 
