@@ -332,13 +332,6 @@ local function on_rocket_launch_ordered(event)
     game.print({"ll-console-info.interstellar-satellite-removed"})
   end
 
-  for player_index, _ in pairs(game.players) do
-    local gui_elements = global.rocket_silo_guis[player_index]
-    if gui_elements then
-      gui_elements["ll-destination-dropdown"].enabled = false
-    end
-  end
-
   if rocket_silos[silo.name] then
     local rocket_silo_destination = global.rocket_silo_destinations_this_tick[silo.unit_number]
     assert(rocket_silo_destination)
@@ -480,12 +473,6 @@ local function on_rocket_launched(event)
     local surface = game.get_surface(get_other_surface_name(rocket_surface))
     land_rocket(surface, inventory, destination_name, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   end
-  for player_index, _ in pairs(game.players) do
-    local gui_elements = global.rocket_silo_guis[player_index]
-    if gui_elements then
-      gui_elements["ll-destination-dropdown"].enabled = true
-    end
-  end
 end
 
 local function on_research_finished(event)
@@ -560,6 +547,13 @@ RocketSilo.on_configuration_changed = function(changed_data)
   global.satellite_cursors = global.satellite_cursors or {}
   global.rocket_silo_destinations_this_tick = global.rocket_silo_destinations_this_tick or {}
   disable_rocket_victory()
+
+  for player_index, _ in pairs(game.players) do
+    local gui_elements = global.rocket_silo_guis[player_index]
+    if gui_elements then
+      gui_elements["ll-destination-dropdown"].enabled = true
+    end
+  end
 end
 
 return RocketSilo
