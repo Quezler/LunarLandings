@@ -127,6 +127,7 @@ local function on_built_entity(event)
     name = "Default",
     surface_name = entity.surface.name,
     inbound_rockets = {},
+    last_targeted_at = 0,
   }
   LandingPad.name_added("Default", entity.unit_number, entity.surface.name)
   script.register_on_entity_destroyed(entity)
@@ -163,6 +164,7 @@ LandingPad.on_configuration_changed = function(changed_data)
 
   for _, landing_pad in pairs(global.landing_pads) do
     landing_pad.inbound_rockets = landing_pad.inbound_rockets or {}
+    landing_pad.last_targeted_at = landing_pad.last_targeted_at or 0
   end
 end
 

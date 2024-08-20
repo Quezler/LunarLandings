@@ -231,6 +231,9 @@ local function get_destination_landing_pad(landing_pad_name, landing_pad_surface
   if not (landing_pad and landing_pad.entity.valid) then
     return
   end
+  if landing_pad.last_targeted_at == game.tick then
+    return
+  end
   return landing_pad
 end
 
@@ -257,6 +260,11 @@ local function launch_rocket(silo, destination_name, destination)
 
   local launched = silo.launch_rocket()
   if launched == false then error("'defines.rocket_silo_status.rocket_ready' wasn't checked.") end -- sanity check
+
+  -- on_rocket_launch_ordered is not instant, we need to make sure there's only one auto rocket per tick per landing pad max.
+  if destination then
+    destination.last_targeted_at = game.tick
+  end
 
   global.rocket_silo_destinations_this_tick[silo.unit_number] = {
     silo = silo,
