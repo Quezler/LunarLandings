@@ -31,6 +31,7 @@ end
 
 local function build_gui(player, silo)
   local silo_data = Buckets.get(global.rocket_silos, silo.unit_number)
+  local destination_name = silo_data.destination
 
   local anchor = {gui = defines.relative_gui_type.rocket_silo_gui, position = defines.relative_gui_position.right}
 
@@ -45,12 +46,12 @@ local function build_gui(player, silo)
   end
   local i = 1
   local dropdown_index = 1
-  if silo_data.destination == "Luna Surface" or silo_data.destination == "Nauvis Surface" then
+  if destination_name == "Luna Surface" or destination_name == "Nauvis Surface" then
     dropdown_index = 2
   end
   for name, _ in pairs(global.landing_pad_names[get_other_surface_name(silo.surface.name)]) do
     table.insert(landing_pad_names, name)
-    if name == silo_data.destination then
+    if name == destination_name then
       dropdown_index = i + (surfaces_unlocked and 2 or 1)
     end
     i = i + 1
@@ -262,7 +263,7 @@ local destination_for_the_most_recently_launched_rocket = nil
 local function launch_if_destination_has_space(silo_data, ready_stacks)
   local silo = silo_data.entity
   local destination_name = silo_data.destination
-  if silo_data.destination == "Space" or silo_data.destination == "Nauvis Surface" or silo_data.destination == "Luna Surface" then
+  if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
     silo.launch_rocket()
   else
     local destination = get_destination_landing_pad(destination_name, get_other_surface_name(silo.surface.name))
@@ -417,7 +418,8 @@ local function on_rocket_launched(event)
   local inventory = event.rocket.get_inventory(defines.inventory.rocket)
 
   local silo_data = Buckets.get(global.rocket_silos, silo.unit_number)
-  if silo_data.destination == "Space" then
+  local destination_name = silo_data.destination
+  if destination_name == "Space" then
     if inventory.get_item_count("satellite") >= 1 then
       if silo.name == "rocket-silo" then
         local force_name = silo.force.name
@@ -455,14 +457,14 @@ local function on_rocket_launched(event)
         end
       end
     end
-  elseif silo_data.destination == "Nauvis Surface" or silo_data.destination == "Luna Surface" then
+  elseif destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
     local rocket_surface = silo.surface.name
     local surface = game.get_surface(get_other_surface_name(rocket_surface))
     spill_rocket(surface, inventory, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   else
     local rocket_surface = silo.surface.name
     local surface = game.get_surface(get_other_surface_name(rocket_surface))
-    land_rocket(surface, inventory, silo_data.destination, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
+    land_rocket(surface, inventory, destination_name, silo.name == "ll-rocket-silo-down" and LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
   end
   for player_index, _ in pairs(game.players) do
     local gui_elements = global.rocket_silo_guis[player_index]
