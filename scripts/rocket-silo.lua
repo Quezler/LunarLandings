@@ -274,7 +274,7 @@ local function launch_rocket(silo, destination_name, destination)
   }
 end
 
-local function launch_if_destination_has_space(silo_data, ready_stacks)
+local function launch_if_destination_has_space(silo_data, empty_slots_required)
   local silo = silo_data.entity
   local destination_name = silo_data.destination
   if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
@@ -286,9 +286,9 @@ local function launch_if_destination_has_space(silo_data, ready_stacks)
     end
     if silo.surface.name == "luna" then
       -- Rockets from Luna deposit rocket parts too
-      ready_stacks = ready_stacks + LUNA_ROCKET_SILO_PARTS_REQUIRED
+      empty_slots_required = empty_slots_required + LUNA_ROCKET_SILO_PARTS_REQUIRED
     end
-    if available_slots_in_destination(destination) >= ready_stacks then
+    if available_slots_in_destination(destination) >= empty_slots_required then
       launch_rocket(silo, destination_name, destination)
     end
   end
@@ -321,7 +321,6 @@ local function on_tick(event)
 end
 
 local function on_rocket_launch_ordered(event)
-  log('foobar 2')
   local silo = event.rocket_silo
   local rocket = event.rocket
 
