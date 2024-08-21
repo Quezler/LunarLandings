@@ -11,6 +11,12 @@ local rocket_silos = {
   ["ll-rocket-silo-down"] = true,
 }
 
+-- local rocket_silos_to_simulate = {
+--   ["rocket-silo"] = true,
+--   ["ll-rocket-silo-down"] = true,
+--   ["ll-rocket-silo-interstellar"] = true,
+-- }
+
 local function is_rocket_launching(entity)
   local status = entity.rocket_silo_status
   local status_lookup = {
@@ -222,21 +228,6 @@ local function on_rocket_silo_built(event)
   })
 end
 
-local function get_destination_landing_pad(landing_pad_name, landing_pad_surface_name)
-  local landing_pads = global.landing_pad_names[landing_pad_surface_name][landing_pad_name]
-  if not landing_pads then return end
-
-  local landing_pad_unit_number, _ = next(landing_pads)
-  local landing_pad = global.landing_pads[landing_pad_unit_number]
-  if not (landing_pad and landing_pad.entity.valid) then
-    return
-  end
-  if landing_pad.last_targeted_at == game.tick then
-    return
-  end
-  return landing_pad
-end
-
 local function available_slots_in_destination(landing_pad)
   local landing_pad_inventory = landing_pad.entity.get_inventory(defines.inventory.chest)
   local available_slots = landing_pad_inventory.count_empty_stacks(false, false)
@@ -278,7 +269,7 @@ local function launch_if_destination_has_space(silo_data, empty_slots_required)
   if destination_name == "Space" or destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
     launch_rocket(silo, destination_name)
   else
-    local destination = get_destination_landing_pad(destination_name, ll_util.get_other_surface_name(silo.surface.name))
+    local destination = ll_util.get_destination_landing_pad(destination_name, ll_util.get_other_surface_name(silo.surface.name))
     if not destination then
       return  -- Destination landing pad doesn't exist, so don't autolaunch
     end
@@ -342,71 +333,9 @@ local function on_rocket_launch_ordered(event)
   end
 end
 
-local function spiral_next(input)
-  local x = input.x
-  local y = input.y
-  local output = {x = x, y = y}
-
-  if x > y and x >= -y then
-    output.y = y + 1
-  elseif -y >= -x and -y > x then
-    output.x = x + 1
-  elseif -x > y and -x > -y then
-    output.y = y - 1
-  elseif y >= -x and y > x then
-    output.x = x - 1
-  else
-    output.x = x - 1
-  end
-
-  return output
-end
-
-local function spill_rocket(surface, inventory, rocket_parts)
-  for i = 1, #inventory do
-    local stack = inventory[i]
-    if stack and stack.valid_for_read then
-      surface.spill_item_stack({0, 0}, stack, false, nil, false)
-      game.print({"ll-console-info.rocket-contents-landed", "[gps=0,0," .. surface.name .. "]"})
-    end
-  end
-  if rocket_parts and rocket_parts > 0 then
-    surface.spill_item_stack({0, 0}, {name = "ll-used-rocket-part", count = rocket_parts}, false, nil, false)
-  end
-end
-
-
-local function land_rocket(surface, inventory, landing_pad_name, rocket_parts)
-  local landing_pad = get_destination_landing_pad(landing_pad_name, surface.name)
-  if not landing_pad then
-    spill_rocket(surface, inventory, rocket_parts)
-    return
-  end
-  local landing_pad_entity = landing_pad.entity
-  local pad_inventory = landing_pad_entity.get_inventory(defines.inventory.chest)
-  for i = 1, #inventory do
-    local stack = inventory[i]
-    if stack and stack.valid_for_read then
-      local inserted = pad_inventory.insert(stack)
-      if inserted < stack.count then
-        surface.spill_item_stack(landing_pad_entity.position, {name = stack.name, count = stack.count - inserted}, false, nil, false)
-      end
-    end
-  end
-  if rocket_parts and rocket_parts > 0 and landing_pad_entity.force.technologies["ll-used-rocket-part-recycling"].researched then
-    local inserted = pad_inventory.insert{name = "ll-used-rocket-part", count = rocket_parts}
-    if inserted < rocket_parts then
-      surface.spill_item_stack(landing_pad_entity.position, {name = "ll-used-rocket-part", count = rocket_parts - inserted}, false, nil, false)
-    end
-  end
-end
-
+-- real event
 local function on_rocket_launched(event)
-  local silo = event.rocket_silo
-  if silo.name == "rocket-silo" and silo.force.technologies["ll-used-rocket-part-recycling"].researched then
-    local result_inventory = silo.get_inventory(defines.inventory.rocket_silo_result)
-    result_inventory.insert{name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
-  elseif silo.name == "ll-rocket-silo-interstellar" then
+  if event.rocket_silo.name == "ll-rocket-silo-interstellar" then
     local rocket = event.rocket
     if not (rocket and rocket.valid) then return end
 
@@ -422,60 +351,6 @@ local function on_rocket_launched(event)
         can_continue = true,
         victorious_force = rocket.force
       }
-    end
-  end
-
-  if rocket_silos[silo.name] then
-    local rocket_in_transit = global.rockets_in_transit[ll_util.get_rocket_unit_number(event.rocket)]
-    assert(rocket_in_transit)
-
-    local destination_name = rocket_in_transit.destination_name
-
-    if destination_name == "Space" then
-      if rocket_in_transit.inventory.get_item_count("satellite") >= 1 then
-        if rocket_in_transit.silo_name == "rocket-silo" then
-          local force = rocket_in_transit.force
-          local force_name = rocket_in_transit.force.name
-          local satellites_launched = global.satellites_launched[force_name] or 0
-          if satellites_launched == 0 then
-            if game.is_multiplayer() then
-              game.print({"ll-console-info.first-satellite-launched"})
-            else
-              game.show_message_dialog{text = {"ll-console-info.first-satellite-launched"}}
-            end
-            game.print({"ll-console-info.first-satellite-launched-urq-hint"})
-            game.print({"ll-console-info.new-destination-unlocked"})
-            force.technologies["ll-luna-exploration"].enabled = true
-          end
-          global.satellites_launched[force_name] = satellites_launched + 1
-          if satellites_launched > 0 then
-            local position = global.satellite_cursors[force_name] or {x = 0, y = 0}
-            for i = 1, 300 do
-              while force.is_chunk_charted("luna", position) do
-                position = spiral_next(position)
-              end
-              force.chart("luna", {
-                {
-                  x = position.x * 32,
-                  y = position.y * 32
-                },
-                {
-                  x = (position.x + 0.5) * 32,
-                  y = (position.y + 0.5) * 32,
-                }
-              })
-              position = spiral_next(position)
-              global.satellite_cursors[force_name] = position
-            end
-          end
-        end
-      end
-    elseif destination_name == "Nauvis Surface" or destination_name == "Luna Surface" then
-      local surface = game.get_surface(rocket_in_transit.destination_surface_name)
-      spill_rocket(surface, rocket_in_transit.inventory, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
-    else
-      local surface = game.get_surface(rocket_in_transit.destination_surface_name)
-      land_rocket(surface, rocket_in_transit.inventory, destination_name, silo.name == "ll-rocket-silo-down" and ll_util.LUNA_ROCKET_SILO_PARTS_REQUIRED or 0)
     end
   end
 end
