@@ -269,7 +269,6 @@ local function launch_rocket(silo, destination_name, destination)
   global.rocket_silo_destinations_this_tick[silo.unit_number] = {
     silo = silo,
     destination = destination,
-    destination_name = destination_name,
   }
 end
 
