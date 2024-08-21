@@ -9,6 +9,7 @@ function RocketTransit.register_rocket(silo, rocket, destination_name, destinati
   local rocket_in_transit = {
     silo = silo,
     silo_name = silo.name,
+    silo_surface = silo.surface,
     silo_position = silo.position,
 
     force = silo.force,
@@ -95,9 +96,13 @@ local function on_rocket_launched(rocket_in_transit)
   local force_name = rocket_in_transit.force.name
 
   if silo_name == "rocket-silo" and force.technologies["ll-used-rocket-part-recycling"].researched then
-    -- TODO: if silo still valid, put the used parts in there, else drop on ground
-    -- local result_inventory = silo.get_inventory(defines.inventory.rocket_silo_result)
-    -- result_inventory.insert{name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
+    if rocket_in_transit.silo.valid then
+      local result_inventory = rocket_in_transit.silo.get_inventory(defines.inventory.rocket_silo_result)
+      result_inventory.insert{name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}
+    else
+      -- assume neither nauvis or luna are ever deleted
+      rocket_in_transit.silo_surface.spill_item_stack(rocket_in_transit.silo_position, {name = "ll-used-rocket-part", count = ll_util.NAUVIS_ROCKET_SILO_PARTS_REQUIRED}, false, nil, false)
+    end
   end
 
   local destination_name = rocket_in_transit.destination_name
